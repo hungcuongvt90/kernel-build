@@ -1,0 +1,44 @@
+[
+  {
+    "kernelSource": {
+      "name": "android_gki_kernel_5.15_common",
+      "repo": "https://github.com/hungcuongvt90/android_gki_kernel_5.15_common",
+      "branch": "android13-5.15-2025-05",
+      "device": "gki",
+      "defconfig": "gki_defconfig"
+    },
+    "toolchains": [
+      {
+        "name": "clang",
+        "url": "https://android.googlesource.com/platform/prebuilts/clang/host/linux-x86/+archive/refs/heads/main/clang-r547379.tar.gz",
+        "binaryEnv": ["./bin"]
+      }
+    ],
+    "enableCcache": true,
+    "params": {
+      "ARCH": "arm64",
+      "CC": "clang/bin/clang",
+      "externalCommands": {
+        "CROSS_COMPILE": "aarch64-linux-gnu-",
+        "CROSS_COMPILE_ARM32": "arm-linux-gnueabi-",
+        "AS": "clang/bin/llvm-as", 
+        "AR": "clang/bin/llvm-ar",  
+        "NM":"clang/bin/llvm-nm" ,  
+        "OBJCOPY":"clang/bin/llvm-objcopy",  
+        "OBJDUMP":"clang/bin/llvm-objdump",  
+        "STRIP":"clang/bin/llvm-strip",  
+        "LD":"clang/bin/ld.lld", 
+        "LTO": "thin"
+      }
+    },
+    "AnyKernel3": {
+      "use": true,
+      "release": true
+    },
+    "enableKernelSU": true,
+    "KernelSUSFS":{
+      "enable": true,
+      "branches": "gki-android13-5.15"
+    }
+  }
+]
