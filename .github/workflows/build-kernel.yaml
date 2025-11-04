@@ -17,7 +17,7 @@ on:
         description: "Select KernelSU Branch"
         required: true
         type: string
-        default: Stable
+        default: susfs-main
       kernelsu_variant:
         description: "Select KernelSU"
         required: true
@@ -32,7 +32,7 @@ on:
         description: "Select SUSFS Hook Type"
         required: true
         type: string
-        default: tracepoint
+        default: syscall
       susfs_branch:
         description: "Select SUSFS branch"
         required: true
@@ -48,11 +48,6 @@ on:
         description: "Enable kernel-level protection against illegal writes to critical partitions/device nodes(LSM)？"
         required: true
         default: false
-      use_kpm:
-        description: "Enable KPM functionality?"
-        required: true
-        type: boolean
-        default: true
       android_version:
         description: "Android kernel version"
         required: false
@@ -118,7 +113,6 @@ jobs:
       SUSFS_BRANCH: ${{ github.event.inputs.susfs_branch }}
       # USE_ZRAM: ${{ github.event.inputs.use_zram }}
       # ZRAM_PATCH_VERSION: ${{ github.event.inputs.android_version }}
-      USE_KPM: ${{ github.event.inputs.use_kpm }}
 
       # Whether to use ccache to speed up compilation
       ENABLE_CCACHE: true
@@ -134,6 +128,8 @@ jobs:
 
       # Whether to enable KernelSU SFS
       ENABLE_KERNELSU_SFS: true
+
+      KSU_BRANCH: ${{ github.event.inputs.kernelsu_branch }}
 
       # Set output & ccache directory
       OUT_DIR: "${{ github.workspace }}/out"
@@ -199,6 +195,17 @@ jobs:
           git clone https://github.com/ShirkNeko/susfs4ksu.git -b "${{ env.SUSFS_BRANCH }}"
           git clone https://github.com/SukiSU-Ultra/SukiSU_patch.git
           git clone https://github.com/Tools-cx-app/kernel_patches.git
+
+          if echo -n '${{ env.PARAMS }}' | jq -e 'has("custom")' > /dev/null; then
+            CUSTOM_ANYKERNEL3=$(echo -n '${{ env.PARAMS }}' | jq -r ".custom")
+            ANYKERNEL_REPO=$(echo $CUSTOM_ANYKERNEL3 | jq -r ".repo")
+            ANYKERNEL_BRANCH=$(echo $CUSTOM_ANYKERNEL3 | jq -r ".branch")
+            git clone --recursive --depth=1 -j $(nproc) --branch $ANYKERNEL_BRANCH $ANYKERNEL_REPO AnyKernel3
+            echo "🤔 Use custom AnyKernel3 => ($ANYKERNEL_REPO)"
+          else
+            git clone --recursive --depth=1 -j $(nproc) https://github.com/WildPlusKernel/AnyKernel3 AnyKernel3
+            echo "🤔 Use WildPlus Anykernel3 => (https://github.com/WildPlusKernel/AnyKernel3)"
+          fi
 
       - name: 💫 Get toolchains on ubuntu github runner
         env:
@@ -350,13 +357,13 @@ jobs:
 
       #     echo "🤔 $args"
 
-      - name: Determine the branch for SukiSU KernelSU
-        run: |
-          if [[ "${{ inputs.kernelsu_branch }}" == "Stable" && ( "${{ inputs.kernelsu_variant }}" == "SukiSU" ) ]]; then
-              echo "KSU_BRANCH=-s susfs-main" >> $GITHUB_ENV
-          elif [[ "${{ inputs.kernelsu_branch }}" == "Dev" && ( "${{ inputs.kernelsu_variant }}" == "SukiSU" ) ]]; then
-              echo "KSU_BRANCH=-s susfs-test" >> $GITHUB_ENV
-          fi
+      # - name: Determine the branch for SukiSU KernelSU
+      #   run: |
+      #     if [[ "${{ inputs.kernelsu_branch }}" == "Stable" && ( "${{ inputs.kernelsu_variant }}" == "SukiSU" ) ]]; then
+      #         echo "KSU_BRANCH=susfs-main" >> $GITHUB_ENV
+      #     elif [[ "${{ inputs.kernelsu_branch }}" == "Dev" && ( "${{ inputs.kernelsu_variant }}" == "SukiSU" ) ]]; then
+      #         echo "KSU_BRANCH=susfs-test" >> $GITHUB_ENV
+      #     fi
 
       - name: 😋 Setup KernelSU
         working-directory: ${{ env.KERNEL_NAME }}
@@ -384,7 +391,51 @@ jobs:
             echo "Done applying KernelSU MKSU..."
           elif [ "${{ inputs.kernelsu_variant }}" == "SukiSU" ]; then
             echo "Adding KernelSU SukiSU..."
-            curl -LSs "https://raw.githubusercontent.com/SukiSU-Ultra/SukiSU-Ultra/main/kernel/setup.sh" | bash $KSU_BRANCH
+            curl -LSs "https://raw.githubusercontent.com/SukiSU-Ultra/SukiSU-Ultra/main/kernel/setup.sh" | bash -s $KSU_BRANCH
+            
+            # If a manual hash was specified, switch to this commit.
+            if [[ -n "$MANUAL_HASH" ]]; then
+              git fetch origin "$BRANCH_NAME" --depth=50
+              git checkout "$MANUAL_HASH"
+              SHORT_HASH=${MANUAL_HASH:0:8}
+            fi
+
+            KSU_API_VERSION=$(curl -fsSL "https://raw.githubusercontent.com/SukiSU-Ultra/SukiSU-Ultra/main/kernel/Makefile" | grep -m1 "KSU_VERSION_API :=" | awk -F'= ' '{print $2}' | tr -d '[:space:]')
+            if [[ -z "$KSU_API_VERSION" || "$(printf '%s\n' "$KSU_API_VERSION" "4.0.0" | sort -V | head -n1)" != "4.0.0" ]]; then
+              KSU_API_VERSION="4.0.0"
+            fi
+            echo "KSU_API_VERSION=$KSU_API_VERSION" >> $GITHUB_ENV
+
+            GIT_HASH=$(git rev-parse --short HEAD)
+            echo "GIT_HASH=$GIT_HASH"
+
+            # Assembly version number
+            if [[ -n "$MANUAL_HASH" ]]; then
+              USE_HASH="$SHORT_HASH"
+            else
+              USE_HASH="$GIT_HASH"
+            fi
+            if [[ -z "$CUSTOM_TAG" ]]; then
+              VERSION_FULL="v$KSU_API_VERSION-$USE_HASH@$BRANCH_NAME"
+            else
+              VERSION_FULL="v$KSU_API_VERSION-$CUSTOM_TAG@$BRANCH_NAME[$USE_HASH]"
+            fi
+
+            # Clean up and write version information to the Makefile
+            sed -i '/define get_ksu_version_full/,/endef/d' kernel/Makefile
+            sed -i '/KSU_VERSION_API :=/d' kernel/Makefile
+            sed -i '/KSU_VERSION_FULL :=/d' kernel/Makefile
+
+            KSU_VERSION=$(expr $(git rev-list --count main 2>/dev/null || echo 13000) + 37185)
+            echo "KSUVER=$KSU_VERSION" >> $GITHUB_ENV
+
+            # echo "::group::Preview of version information and some debugging results in the final Makefile"
+            # grep -A10 "REPO_OWNER" kernel/Makefile
+            # grep "KSU_VERSION_FULL" kernel/Makefile
+            # echo "::endgroup::"
+
+            cat kernel/Makefile
+            
             echo "Done applying KernelSU SukiSU..."
           fi
 
@@ -417,14 +468,10 @@ jobs:
 
             patch -p1 < 50_add_susfs_in_${{ env.SUSFS_BRANCH }}.patch || true
 
-            if [ "${{ env.HOOK_VARIANT }}" == "tracepoint" ]; then
-              echo "Apply tracepoint hook patches"
-              cp ../SukiSU_patch/hooks/sukisu_tracepoint_hooks_v1.1.patch ./
-              patch -p1 -F 3 < sukisu_tracepoint_hooks_v1.1.patch
-            elif [ "${{ env.HOOK_VARIANT }}" == "scope_min_manual" ]; then
+            if [ "${{ env.HOOK_VARIANT }}" == "scope_min_manual" ]; then
               echo "Apply scope min manual hook patches"
-              cp ../SukiSU_patch/hooks/scope_min_manual_hooks_v1.5.patch ./
-              patch -p1 -F 3 < scope_min_manual_hooks_v1.5.patch
+              cp ../SukiSU_patch/hooks/scope_min_manual_hooks_v1.6.patch ./
+              patch -p1 -F 3 < scope_min_manual_hooks_v1.6.patch
             else
               echo "Apply syscall hook patches"
               cp ../SukiSU_patch/hooks/syscall_hooks.patch ./
@@ -435,7 +482,7 @@ jobs:
             exit 1
           fi
 
-          echo "ANYKERNEL3_FILE=${{ inputs.kernelsu_variant }}-${{ env.HOOK_VARIANT }}-${{ env.KERNEL_NAME }}-${{ env.BUILD_DATE }}-NO-KPM" >> $GITHUB_ENV
+          echo "ANYKERNEL3_FILE_NO_KPM=${{ inputs.kernelsu_variant }}-${{ env.HOOK_VARIANT }}-${{ env.KERNEL_NAME }}-${{ env.BUILD_DATE }}-NO-KPM" >> $GITHUB_ENV
           echo "RELEASE_TAG_NAME=${{ inputs.kernelsu_variant }}-${{ env.HOOK_VARIANT }}-${{ env.KERNEL_NAME }}-${{ env.BUILD_DATE }}-NO-KPM" >> $GITHUB_ENV
 
       - name: Apply Hide Stuff Patches
@@ -569,7 +616,7 @@ jobs:
 
           # Add SUSFS configuration settings
           echo "CONFIG_KSU_SUSFS=y" >> $CONFIG_FILE
-          echo "CONFIG_KSU_SUSFS_HAS_MAGIC_MOUNT=y" >> $CONFIG_FILE
+          echo "CONFIG_KSU_SUSFS_SUS_MAP=y" >> $CONFIG_FILE
           if [ "${{ inputs.kernel_version }}" != "6.6" ]; then
             echo "CONFIG_KSU_SUSFS_SUS_PATH=y" >> $CONFIG_FILE
           else
@@ -579,7 +626,7 @@ jobs:
           echo "CONFIG_KSU_SUSFS_AUTO_ADD_SUS_KSU_DEFAULT_MOUNT=y" >> $CONFIG_FILE
           echo "CONFIG_KSU_SUSFS_AUTO_ADD_SUS_BIND_MOUNT=y" >> $CONFIG_FILE
           echo "CONFIG_KSU_SUSFS_SUS_KSTAT=y" >> $CONFIG_FILE
-          echo "CONFIG_KSU_SUSFS_SUS_OVERLAYFS=n" >> $CONFIG_FILE
+          # echo "CONFIG_KSU_SUSFS_SUS_OVERLAYFS=n" >> $CONFIG_FILE
           echo "CONFIG_KSU_SUSFS_TRY_UMOUNT=y" >> $CONFIG_FILE
           echo "CONFIG_KSU_SUSFS_AUTO_ADD_TRY_UMOUNT_FOR_BIND_MOUNT=y" >> $CONFIG_FILE
           echo "CONFIG_KSU_SUSFS_SPOOF_UNAME=y" >> $CONFIG_FILE
@@ -587,7 +634,7 @@ jobs:
           echo "CONFIG_KSU_SUSFS_HIDE_KSU_SUSFS_SYMBOLS=y" >> $CONFIG_FILE
           echo "CONFIG_KSU_SUSFS_SPOOF_CMDLINE_OR_BOOTCONFIG=y" >> $CONFIG_FILE
           echo "CONFIG_KSU_SUSFS_OPEN_REDIRECT=y" >> $CONFIG_FILE
-          echo "CONFIG_KSU_MANUAL_SU=n" >> $CONFIG_FILE
+          # echo "CONFIG_KSU_MANUAL_SU=n" >> $CONFIG_FILE
 
           # # Add ZRAM configuration
 
@@ -639,24 +686,6 @@ jobs:
           make ${{ env.ARGS }}
           ccache --show-stats
 
-      - name: Apply KPM
-        working-directory: ${{ env.OUT_DIR }}/arch/${{ env.ARCH }}/boot/
-        if: ${{ env.USE_KPM == 'true' && inputs.kernelsu_variant == 'SukiSU' && inputs.android_version != '6.6' }}
-        run: |
-          echo "Start to patch KPM" 
-          # ls -la ${{ env.OUT_DIR }}/arch/
-          # ls -la ${{ env.OUT_DIR }}/arch/${{ env.ARCH }}/boot/
-          # cd ${{ env.OUT_DIR }}/arch/${{ env.ARCH }}/boot/
-          pwd
-          ls -la .
-          curl -LSs "https://raw.githubusercontent.com/ShirkNeko/SukiSU_patch/refs/heads/main/kpm/patch_linux" -o patch_linux
-          chmod +x patch_linux
-          ./patch_linux
-          rm -f Image
-          mv oImage Image
-          echo "ANYKERNEL3_FILE=${{ inputs.kernelsu_variant }}-${{ env.HOOK_VARIANT }}-${{ env.KERNEL_NAME }}-${{ env.BUILD_DATE }}-KPM" >> $GITHUB_ENV
-          echo "RELEASE_TAG_NAME=${{ inputs.kernelsu_variant }}-${{ env.HOOK_VARIANT }}-${{ env.KERNEL_NAME }}-${{ env.BUILD_DATE }}-KPM" >> $GITHUB_ENV
-
       - name: 💛 Upload Image
         uses: actions/upload-artifact@v4
         with:
@@ -704,47 +733,94 @@ jobs:
           path: ${{ env.OUT_DIR }}/arch/${{ env.ARCH }}/boot/
           retention-days: 7
 
-      - name: ⏰ Pack Anykernel3
+      - name: ⏰ Pack Anykernel3 without KPM
         if: ${{ env.USE_ANYKERNEL3 == 'true' }}
         env:
           PARAMS: "${{ toJSON(matrix.CONFIG.AnyKernel3) }}"
         run: |
-          if echo -n '${{ env.PARAMS }}' | jq -e 'has("custom")' > /dev/null; then
-            CUSTOM_ANYKERNEL3=$(echo -n '${{ env.PARAMS }}' | jq -r ".custom")
-            ANYKERNEL_REPO=$(echo $CUSTOM_ANYKERNEL3 | jq -r ".repo")
-            ANYKERNEL_BRANCH=$(echo $CUSTOM_ANYKERNEL3 | jq -r ".branch")
-            git clone --recursive --depth=1 -j $(nproc) --branch $ANYKERNEL_BRANCH $ANYKERNEL_REPO AnyKernel3
-            echo "🤔 Use custom AnyKernel3 => ($ANYKERNEL_REPO)"
-          else
-            git clone --recursive --depth=1 -j $(nproc) https://github.com/WildPlusKernel/AnyKernel3 AnyKernel3
-            echo "🤔 Use WildPlus Anykernel3 => (https://github.com/WildPlusKernel/AnyKernel3)"
-          fi
+          cp -r AnyKernel3 AnyKernel3_1
 
           if [ -e "${{ env.OUT_DIR }}/arch/${{ env.ARCH }}/boot/Image.gz-dtb" ]; then
-            cp -f ${{ env.OUT_DIR }}/arch/${{ env.ARCH }}/boot/Image.gz-dtb ./AnyKernel3/
+            cp -f ${{ env.OUT_DIR }}/arch/${{ env.ARCH }}/boot/Image.gz-dtb ./AnyKernel3_1/
           else
             if [ -e "${{ env.OUT_DIR }}/arch/${{ env.ARCH }}/boot/Image" ]; then
-              cp -f ${{ env.OUT_DIR }}/arch/${{ env.ARCH }}/boot/Image ./AnyKernel3/
+              cp -f ${{ env.OUT_DIR }}/arch/${{ env.ARCH }}/boot/Image ./AnyKernel3_1/
             fi
             if [ -e "${{ env.OUT_DIR }}/arch/${{ env.ARCH }}/boot/dtbo" ]; then
-              cp -f ${{ env.OUT_DIR }}/arch/${{ env.ARCH }}/boot/dtbo ./AnyKernel3/
+              cp -f ${{ env.OUT_DIR }}/arch/${{ env.ARCH }}/boot/dtbo ./AnyKernel3_1/
             fi
             if [ -e "${{ env.OUT_DIR }}/arch/${{ env.ARCH }}/boot/dtbo.img" ]; then
-              cp -f ${{ env.OUT_DIR }}/arch/${{ env.ARCH }}/boot/dtbo.img ./AnyKernel3/
+              cp -f ${{ env.OUT_DIR }}/arch/${{ env.ARCH }}/boot/dtbo.img ./AnyKernel3_1/
             fi
           fi
 
-          cd AnyKernel3/
-          zip -q -r "${{ env.ANYKERNEL3_FILE }}.zip" *
+          cd AnyKernel3_1/
+          zip -q -r "${{ env.ANYKERNEL3_FILE_NO_KPM }}.zip" *
+          cp "${{ env.ANYKERNEL3_FILE_NO_KPM }}.zip" ${{ env.WORKSPACE }}
           ls -la .
           pwd
+
+      - name: Apply KPM
+        working-directory: ${{ env.OUT_DIR }}/arch/${{ env.ARCH }}/boot/
+        if: ${{ inputs.kernelsu_variant == 'SukiSU' && inputs.android_version != '6.6' }}
+        run: |
+          echo "Start to patch KPM" 
+          # ls -la ${{ env.OUT_DIR }}/arch/
+          # ls -la ${{ env.OUT_DIR }}/arch/${{ env.ARCH }}/boot/
+          # cd ${{ env.OUT_DIR }}/arch/${{ env.ARCH }}/boot/
+          pwd
+          ls -la .
+          curl -LSs "https://raw.githubusercontent.com/ShirkNeko/SukiSU_patch/refs/heads/main/kpm/patch_linux" -o patch_linux
+          chmod +x patch_linux
+          ./patch_linux
+          rm -f Image
+          mv oImage Image
+          echo "ANYKERNEL3_FILE_WITH_KPM=${{ inputs.kernelsu_variant }}-${{ env.HOOK_VARIANT }}-${{ env.KERNEL_NAME }}-${{ env.BUILD_DATE }}-KPM" >> $GITHUB_ENV
+          echo "RELEASE_TAG_NAME=${{ inputs.kernelsu_variant }}-${{ env.HOOK_VARIANT }}-${{ env.KERNEL_NAME }}-${{ env.BUILD_DATE }}-KPM" >> $GITHUB_ENV
+
+      - name: ⏰ Pack Anykernel3 with KPM
+        if: ${{ env.USE_ANYKERNEL3 == 'true' }}
+        env:
+          PARAMS: "${{ toJSON(matrix.CONFIG.AnyKernel3) }}"
+        run: |
+          cp -r AnyKernel3 AnyKernel3_2
+
+          if [ -e "${{ env.OUT_DIR }}/arch/${{ env.ARCH }}/boot/Image.gz-dtb" ]; then
+            cp -f ${{ env.OUT_DIR }}/arch/${{ env.ARCH }}/boot/Image.gz-dtb ./AnyKernel3_2/
+          else
+            if [ -e "${{ env.OUT_DIR }}/arch/${{ env.ARCH }}/boot/Image" ]; then
+              cp -f ${{ env.OUT_DIR }}/arch/${{ env.ARCH }}/boot/Image ./AnyKernel3_2/
+            fi
+            if [ -e "${{ env.OUT_DIR }}/arch/${{ env.ARCH }}/boot/dtbo" ]; then
+              cp -f ${{ env.OUT_DIR }}/arch/${{ env.ARCH }}/boot/dtbo ./AnyKernel3_2/
+            fi
+            if [ -e "${{ env.OUT_DIR }}/arch/${{ env.ARCH }}/boot/dtbo.img" ]; then
+              cp -f ${{ env.OUT_DIR }}/arch/${{ env.ARCH }}/boot/dtbo.img ./AnyKernel3_2/
+            fi
+          fi
+
+          cd AnyKernel3_2/
+          zip -q -r "${{ env.ANYKERNEL3_FILE_WITH_KPM }}.zip" *
+          cp "${{ env.ANYKERNEL3_FILE_WITH_KPM }}.zip" ${{ env.WORKSPACE }}
+          ls -la .
+          pwd
+          ls -la ${{ env.WORKSPACE }}
 
       - name: "💾 Upload AnyKernel3 image => (${{ env.BUILD_DATE }})"
         uses: actions/upload-artifact@v4
         if: ${{ env.USE_ANYKERNEL3 == 'true' }}
         with:
-          name: "${{ env.ANYKERNEL3_FILE }}"
-          path: AnyKernel3/*
+          name: "${{ env.ANYKERNEL3_FILE_NO_KPM }}"
+          path: |
+            AnyKernel3_1/*
+
+      - name: "💾 Upload AnyKernel3 image => (${{ env.BUILD_DATE }})"
+        uses: actions/upload-artifact@v4
+        if: ${{ env.USE_ANYKERNEL3 == 'true' }}
+        with:
+          name: "${{ env.ANYKERNEL3_FILE_WITH_KPM }}"
+          path: |
+            AnyKernel3_2/*
 
       - name: "🧧 Create GitHub Release => (${{ env.RELEASE_TAG_NAME }})"
         continue-on-error: true
@@ -752,12 +828,11 @@ jobs:
         if: ${{ env.USE_ANYKERNEL3 == 'true' && env.CONFIRM_RELEASE == 'true' }}
         with:
           tag_name: ${{ env.RELEASE_TAG_NAME }}
-          files: "${{ env.WORKSPACE }}/AnyKernel3/${{ env.ANYKERNEL3_FILE }}.zip"
+          files: "${{ env.WORKSPACE }}/*.zip"
           generate_release_notes: true
           body: |
             ### 📱kernel build information
 
             - **Device:** ${{ env.DEVICE_NAME }}
             - **KernelSU version:** ${{ inputs.kernelsu_variant }}
-            - **KPM Support:** ${{ env.USE_KPM }}
             - **Baseband Guard Support:** ${{ github.event.inputs.baseband_guard }}
