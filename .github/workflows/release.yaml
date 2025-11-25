@@ -26,11 +26,8 @@ on:
       kernelsu_branch:
         description: "Select KernelSU Branch"
         required: true
-        type: choice
-        options:
-          - Stable
-          - Dev
-        default: stable
+        type: string
+        default: susfs-main
       kernel_patch_repo:
         description: "Select Kernel Patch repository URL"
         required: true
@@ -42,9 +39,8 @@ on:
         type: choice
         options:
           - syscall
-          - tracepoint
           - scope_min_manual
-        default: tracepoint
+        default: syscall
       susfs_branch:
         description: "Select SUSFS branch"
         required: true
@@ -69,11 +65,6 @@ on:
         description: "Enable kernel-level protection against illegal writes to critical partitions/device nodes(LSM)？"
         required: true
         default: false
-      use_kpm:
-        description: "Enable KPM functionality?"
-        required: true
-        type: boolean
-        default: true
       android_version:
         description: "Android kernel version"
         required: true
@@ -99,5 +90,4 @@ jobs:
       susfs_branch: ${{ inputs.susfs_branch }}
       baseband_guard: ${{ inputs.baseband_guard }}
       # use_zram: ${{ inputs.use_zram }}
-      use_kpm: ${{ inputs.use_kpm }}
       android_version: ${{ inputs.android_version }}
