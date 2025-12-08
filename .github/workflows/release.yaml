@@ -27,7 +27,7 @@ on:
         description: "Select KernelSU Branch"
         required: true
         type: string
-        default: susfs-main
+        default: builtin
       kernel_patch_repo:
         description: "Select Kernel Patch repository URL"
         required: true
