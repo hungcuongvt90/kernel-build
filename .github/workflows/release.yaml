@@ -9,10 +9,10 @@ on:
         type: string
         default: "https://github.com/hungcuongvt90/android_gki_kernel_5.15_common"
       kernel_branch:
-        description: "Kernel repository URL"
+        description: "Kernel branch"
         required: true
         type: string
-        default: "android13-5.15-2025-05"
+        default: "android13-5.15-8gen2"
       kernelsu_variant:
         description: "Select KernelSU"
         required: true
