@@ -12,7 +12,7 @@ on:
         description: "Kernel branch"
         required: true
         type: string
-        default: "android13-5.15-8gen2"
+        default: "android13-5.15-2025-05"
       kernelsu_variant:
         description: "Select KernelSU"
         required: true
