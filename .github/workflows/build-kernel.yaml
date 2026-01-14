@@ -595,6 +595,7 @@ jobs:
             echo "CONFIG_KSU_TRACEPOINT_HOOK=y" >>  $CONFIG_FILE
           else
             echo "CONFIG_KSU_MANUAL_HOOK=y" >> $CONFIG_FILE
+            echo "CONFIG_KSU_SYSCALL_HOOK=y" >> $CONFIG_FILE
           fi
 
           # Add additional tmpfs config setting
