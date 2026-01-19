@@ -9,11 +9,8 @@ if [ "$kernelsu_variant" == "SukiSU" ]; then
 
     echo "Apply more patches from WildPlus"
 
-    ls -la ../
-    ls -la ../kernel_patches/
-
-    cp ../kernel_patches/next/susfs_fix_patches/v2.0.0/fix_Makefile.patch ./
-    patch -p1 -F 3 < fix_Makefile.patch
+    # cp ../kernel_patches/next/susfs_fix_patches/v2.0.0/fix_Makefile.patch ./
+    # patch -p1 -F 3 < fix_Makefile.patch
 
     cp ../kernel_patches/next/susfs_fix_patches/v2.0.0/fix_allowlist.c.patch ./
     patch -p1 -F 3 < fix_allowlist.c.patch
