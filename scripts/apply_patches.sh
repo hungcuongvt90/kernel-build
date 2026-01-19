@@ -9,35 +9,24 @@ if [ "$kernelsu_variant" == "SukiSU" ]; then
 
     echo "Apply more patches from WildPlus"
 
-    # cp ../kernel_patches/next/susfs_fix_patches/v2.0.0/fix_Makefile.patch ./
-    # patch -p1 -F 3 < fix_Makefile.patch
+    PATCH_DIR="../kernel_patches/next/susfs_fix_patches/v2.0.0"
+    patches=(
+        # "fix_Makefile.patch"
+        # "fix_allowlist.c.patch"
+        # "fix_kernel_umount.c.patch"
+        # "fix_ksu.c.patch"
+        # "fix_ksud.c.patch"
+        # "fix_sucompat.c.patch"
+        # "fix_supercalls.c.patch"
+        # "ksu_toolkit.patch"
+        # "multi_manager.patch"
+        # "overwrite_hook_mode.patch"
+    )
 
-    cp ../kernel_patches/next/susfs_fix_patches/v2.0.0/fix_allowlist.c.patch ./
-    patch -p1 -F 3 < fix_allowlist.c.patch
-
-    cp ../kernel_patches/next/susfs_fix_patches/v2.0.0/fix_kernel_umount.c.patch ./
-    patch -p1 -F 3 < fix_kernel_umount.c.patch
-
-    cp ../kernel_patches/next/susfs_fix_patches/v2.0.0/fix_ksu.c.patch ./
-    patch -p1 -F 3 < fix_ksu.c.patch
-
-    cp ../kernel_patches/next/susfs_fix_patches/v2.0.0/fix_ksud.c.patch ./
-    patch -p1 -F 3 < fix_ksud.c.patch
-
-    cp ../kernel_patches/next/susfs_fix_patches/v2.0.0/fix_sucompat.c.patch ./
-    patch -p1 -F 3 < fix_sucompat.c.patch
-
-    cp ../kernel_patches/next/susfs_fix_patches/v2.0.0/fix_supercalls.c.patch ./
-    patch -p1 -F 3 < fix_supercalls.c.patch
-
-    cp ../kernel_patches/next/susfs_fix_patches/v2.0.0/ksu_toolkit.patch ./
-    patch -p1 -F 3 < ksu_toolkit.patch
-
-    cp ../kernel_patches/next/susfs_fix_patches/v2.0.0/multi_manager.patch ./
-    patch -p1 -F 3 < multi_manager.patch
-
-    cp ../kernel_patches/next/susfs_fix_patches/v2.0.0/overwrite_hook_mode.patch ./
-    patch -p1 -F 3 < overwrite_hook_mode.patch
+    for patch in "${patches[@]}"; do
+        cp "$PATCH_DIR/$patch" ./
+        patch -p1 -F 3 < "$patch"
+    done
 else
     cp ../kernel_patches/69_hide_stuff.patch ./
     patch -p1 -F 3 < 69_hide_stuff.patch

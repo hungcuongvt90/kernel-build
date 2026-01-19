@@ -402,84 +402,15 @@ jobs:
 
       - name: Add SUSFS configuration settings
         working-directory: ${{ env.KERNEL_NAME }}
+        env:
+          kernelsu_variant: ${{ inputs.kernelsu_variant }}
+          ANDROID_VERSION: ${{ inputs.android_version }}
+          ARCH: ${{ env.ARCH }}
+          KERNEL_DEFCONFIG: ${{ env.KERNEL_DEFCONFIG_PATH }}
         run: |
-          CONFIG_FILE="./arch/$ARCH/configs/gki_defconfig"
-          echo "Adding configuration settings to gki_defconfig..."
+          chmod +x ../scripts/config_susfs.sh && ../scripts/config_susfs.sh
 
-          # Add KSU configuration settings
-          echo "CONFIG_KSU=y" >> $CONFIG_FILE
-
-          if [ "${{ inputs.kernelsu_variant }}" == "Next" ]; then
-            echo "CONFIG_KSU_KPROBES_HOOK=n" >> $CONFIG_FILE
-            echo "CONFIG_KSU_SUSFS_SUS_SU=n" >> $CONFIG_FILE
-          elif [ "${{ inputs.kernelsu_variant }}" == "SukiSU" ]; then
-            echo "CONFIG_KPM=y" >> $CONFIG_FILE
-            echo "CONFIG_KSU_SUSFS_SUS_SU=n" >> $CONFIG_FILE
-          elif [ "${{ inputs.kernelsu_variant }}" == "MKSU" ]; then
-            echo "CONFIG_KSU_SUSFS_SUS_SU=n" >> $CONFIG_FILE
-          fi
-
-          if [ "${{ env.HOOK_VARIANT }}" == "tracepoint" ]; then
-            echo "CONFIG_KSU_TRACEPOINT_HOOK=y" >>  $CONFIG_FILE
-          else
-            echo "CONFIG_KSU_MANUAL_HOOK=y" >> $CONFIG_FILE
-            echo "CONFIG_KSU_SYSCALL_HOOK=y" >> $CONFIG_FILE
-          fi
-
-          # Add additional tmpfs config setting
-          echo "CONFIG_TMPFS_XATTR=y" >> $CONFIG_FILE
-          echo "CONFIG_TMPFS_POSIX_ACL=y" >> $CONFIG_FILE
-
-          # Add additional config setting
-          echo "CONFIG_IP_NF_TARGET_TTL=y" >> $CONFIG_FILE
-          echo "CONFIG_IP6_NF_TARGET_HL=y" >> $CONFIG_FILE
-          echo "CONFIG_IP6_NF_MATCH_HL=y" >> $CONFIG_FILE
-
-          # Add BBR Config
-          echo "CONFIG_TCP_CONG_ADVANCED=y" >> $CONFIG_FILE
-          echo "CONFIG_TCP_CONG_BBR=y" >> $CONFIG_FILE
-          echo "CONFIG_NET_SCH_FQ=y" >> $CONFIG_FILE
-          echo "CONFIG_TCP_CONG_BIC=n" >> $CONFIG_FILE
-          echo "CONFIG_TCP_CONG_WESTWOOD=n" >> $CONFIG_FILE
-          echo "CONFIG_TCP_CONG_HTCP=n" >> $CONFIG_FILE
-
-          # Add SUSFS configuration settings
-          echo "CONFIG_KSU_SUSFS=y" >> $CONFIG_FILE
-          echo "CONFIG_KSU_SUSFS_SUS_MAP=y" >> $CONFIG_FILE
-          if [ "${{ inputs.kernel_version }}" != "6.6" ]; then
-            echo "CONFIG_KSU_SUSFS_SUS_PATH=y" >> $CONFIG_FILE
-          else
-            echo "CONFIG_KSU_SUSFS_SUS_PATH=n" >> $CONFIG_FILE
-          fi
-          echo "CONFIG_KSU_SUSFS_SUS_MOUNT=y" >> $CONFIG_FILE
-          echo "CONFIG_KSU_SUSFS_AUTO_ADD_SUS_KSU_DEFAULT_MOUNT=y" >> $CONFIG_FILE
-          echo "CONFIG_KSU_SUSFS_AUTO_ADD_SUS_BIND_MOUNT=y" >> $CONFIG_FILE
-          echo "CONFIG_KSU_SUSFS_SUS_KSTAT=y" >> $CONFIG_FILE
-          # echo "CONFIG_KSU_SUSFS_SUS_OVERLAYFS=n" >> $CONFIG_FILE
-          echo "CONFIG_KSU_SUSFS_AUTO_ADD_TRY_UMOUNT_FOR_BIND_MOUNT=y" >> $CONFIG_FILE
-          echo "CONFIG_KSU_SUSFS_SPOOF_UNAME=y" >> $CONFIG_FILE
-          echo "CONFIG_KSU_SUSFS_HIDE_KSU_SUSFS_SYMBOLS=y" >> $CONFIG_FILE
-          echo "CONFIG_KSU_SUSFS_SPOOF_CMDLINE_OR_BOOTCONFIG=y" >> $CONFIG_FILE
-          echo "CONFIG_KSU_SUSFS_OPEN_REDIRECT=y" >> $CONFIG_FILE
-          # echo "CONFIG_KSU_MANUAL_SU=n" >> $CONFIG_FILE
-
-          # # Add ZRAM configuration
-
-          # if [ "${{ inputs.use_zram }}" = "true" ] && [ "${{ inputs.kernelsu_variant }}" == "SukiSU" ]; then
-          #   echo "CONFIG_CRYPTO_LZ4HC=y" >> "$CONFIG_FILE"
-          #   echo "CONFIG_CRYPTO_LZ4K=y" >> "$CONFIG_FILE"
-          #   echo "CONFIG_CRYPTO_LZ4KD=y" >> "$CONFIG_FILE"
-          #   echo "CONFIG_CRYPTO_842=y" >> "$CONFIG_FILE"
-          #   echo "CONFIG_CRYPTO_LZ4K_OPLUS=y" >> "$CONFIG_FILE"
-          #   echo "CONFIG_ZRAM_WRITEBACK=y" >> "$CONFIG_FILE"
-          # fi
-
-          # Remove check_defconfig
-          sed -i 's/check_defconfig//' ./build.config.gki
-
-          # sed -i '$s|echo "\$res"|echo "\$res-ab11001737"|' ./scripts/setlocalversion
-
-          cat $CONFIG_FILE
+          cat ./arch/$ARCH/configs/gki_defconfig
 
       - name: Enable lto=thin For FAST
         working-directory: ${{ env.KERNEL_NAME }}
