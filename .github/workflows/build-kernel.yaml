@@ -390,8 +390,8 @@ jobs:
             curl -LSs "https://raw.githubusercontent.com/5ec1cff/KernelSU/main/kernel/setup.sh" | bash $KSU_BRANCH
             echo "Done applying KernelSU MKSU..."
           elif [ "${{ inputs.kernelsu_variant }}" == "SukiSU" ]; then
-            echo "Adding SukiSU..."
-            curl -LSs "https://raw.githubusercontent.com/hungcuongvt90/SukiSU-Ultra/main/kernel/setup.sh" | bash -s $KSU_BRANCH
+            echo "Adding KernelSU SukiSU..."
+            curl -LSs "https://raw.githubusercontent.com/SukiSU-Ultra/SukiSU-Ultra/main/kernel/setup.sh" | bash -s $KSU_BRANCH
             
             # If a manual hash was specified, switch to this commit.
             if [[ -n "$MANUAL_HASH" ]]; then
