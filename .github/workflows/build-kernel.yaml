@@ -324,7 +324,16 @@ jobs:
         env:
           kernelsu_variant: ${{ inputs.kernelsu_variant }}
         run: |
-          chmod +x ../scripts/apply_patches.sh && ../scripts/apply_patches.sh
+          pwd
+          ls -la .
+
+          ls -la ../
+          ls -la ../kernel_patches/
+          ls -la ../kernel_patches/next/
+          ls -la ../kernel_patches/next/susfs_fix_patches/
+          ls -la ../kernel_patches/next/susfs_fix_patches/v2.0.0/
+
+          chmod +x ../scripts/apply_patches.sh && cp ../scripts/apply_patches.sh . && ./apply_patches.sh
 
       # - name: Copy source files & apply LZ4KD & ZSTDN patches
       #   working-directory: ${{ env.KERNEL_NAME }}

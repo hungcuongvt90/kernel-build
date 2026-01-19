@@ -12,7 +12,6 @@ if [ "$kernelsu_variant" == "SukiSU" ]; then
     ls -la ../
     ls -la ../kernel_patches/
 
-
     cp ../kernel_patches/next/susfs_fix_patches/v2.0.0/fix_Makefile.patch ./
     patch -p1 -F 3 < fix_Makefile.patch
 
