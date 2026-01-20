@@ -17,7 +17,7 @@ on:
         description: "Select KernelSU Branch"
         required: true
         type: string
-        default: builtin
+        default: builtin-tmp
       kernelsu_variant:
         description: "Select KernelSU"
         required: true
