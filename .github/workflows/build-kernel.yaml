@@ -149,16 +149,14 @@ jobs:
       # Install prerequisites for Ubuntu
       - name: ⭐ Install prerequisites
         run: |
-          chmod +x scripts/install_dependencies.sh && ./scripts/install_dependencies.sh
+          chmod +x scripts/install_dependencies.sh && ./scripts/install_dependencies.sh '${{ toJSON(matrix.CONFIG.params) }}' '${{ github.workspace }}'
 
       # Initialize ccache
       - name: 🚄 Setup ccache
         if: ${{ env.ENABLE_CCACHE == 'true' }}
         id: hash
         run: |
-          chmod +x scripts/setup_ccache.sh && ./scripts/setup_ccache.sh
-          # Generate configuration's hash
-          echo "HASH=$(echo -n '${{ toJSON(matrix.config) }}' | openssl dgst -sha1 | awk '{print $2}')" >> $GITHUB_ENV
+          chmod +x scripts/setup_ccache.sh && ./scripts/setup_ccache.sh '${{ toJSON(matrix.config) }}'
 
       - name: 🚅 Cache ccache & output
         env:
@@ -225,14 +223,10 @@ jobs:
               args="$args CC=$CC"
             fi
           fi
-          while read -r externalCommand; do
-            key=$(echo "$externalCommand" | cut -d= -f1)
-            value=$(echo "$externalCommand" | cut -d= -f2)
-            if [[ "$value" == *"/"* ]]; then
-              value="${{ env.WORKSPACE }}/$value"
-            fi
-            args="$args $key=$value"
-          done < <(jq -r '.externalCommands | to_entries[] | "\(.key)=\(.value)"' <<< "$PARAMS")
+          
+          if [ -n "$EXTERNAL_ARGS" ]; then
+            args="$args $EXTERNAL_ARGS"
+          fi
 
           echo "ARCH=$ARCH" >> $GITHUB_ENV
           echo "ARGS=$args LLVM_IAS=1" >> $GITHUB_ENV
@@ -496,36 +490,13 @@ jobs:
         env:
           PARAMS: "${{ toJSON(matrix.CONFIG.AnyKernel3) }}"
         run: |
-          cp -r AnyKernel3 AnyKernel3_1
-
-          if [ -e "${{ env.OUT_DIR }}/arch/${{ env.ARCH }}/boot/Image.gz-dtb" ]; then
-            cp -f ${{ env.OUT_DIR }}/arch/${{ env.ARCH }}/boot/Image.gz-dtb ./AnyKernel3_1/
-          else
-            if [ -e "${{ env.OUT_DIR }}/arch/${{ env.ARCH }}/boot/Image" ]; then
-              cp -f ${{ env.OUT_DIR }}/arch/${{ env.ARCH }}/boot/Image ./AnyKernel3_1/
-            fi
-            if [ -e "${{ env.OUT_DIR }}/arch/${{ env.ARCH }}/boot/dtbo" ]; then
-              cp -f ${{ env.OUT_DIR }}/arch/${{ env.ARCH }}/boot/dtbo ./AnyKernel3_1/
-            fi
-            if [ -e "${{ env.OUT_DIR }}/arch/${{ env.ARCH }}/boot/dtbo.img" ]; then
-              cp -f ${{ env.OUT_DIR }}/arch/${{ env.ARCH }}/boot/dtbo.img ./AnyKernel3_1/
-            fi
-          fi
-
-          cd AnyKernel3_1/
-          zip -q -r "${{ env.ANYKERNEL3_FILE_NO_KPM }}.zip" *
-          cp "${{ env.ANYKERNEL3_FILE_NO_KPM }}.zip" ${{ env.WORKSPACE }}
-          ls -la .
-          pwd
+          chmod +x scripts/pack_anykernel.sh && ./scripts/pack_anykernel.sh "AnyKernel3" "AnyKernel3_1" "${{ env.ANYKERNEL3_FILE_NO_KPM }}"
 
       - name: Apply KPM
         working-directory: ${{ env.OUT_DIR }}/arch/${{ env.ARCH }}/boot/
         if: ${{ inputs.kernelsu_variant == 'SukiSU' && inputs.android_version != '6.6' }}
         run: |
           echo "Start to patch KPM" 
-          # ls -la ${{ env.OUT_DIR }}/arch/
-          # ls -la ${{ env.OUT_DIR }}/arch/${{ env.ARCH }}/boot/
-          # cd ${{ env.OUT_DIR }}/arch/${{ env.ARCH }}/boot/
           pwd
           ls -la .
           curl -LSs "https://raw.githubusercontent.com/ShirkNeko/SukiSU_patch/refs/heads/main/kpm/patch_linux" -o patch_linux
@@ -533,36 +504,15 @@ jobs:
           ./patch_linux
           rm -f Image
           mv oImage Image
-          echo "ANYKERNEL3_FILE_WITH_KPM=${{ inputs.kernelsu_variant }}-${{ env.HOOK_VARIANT }}-${{ env.KERNEL_NAME }}-${{ env.BUILD_DATE }}-KPM" >> $GITHUB_ENV
-          echo "RELEASE_TAG_NAME=${{ inputs.kernelsu_variant }}-${{ env.HOOK_VARIANT }}-${{ env.KERNEL_NAME }}-${{ env.BUILD_DATE }}-KPM" >> $GITHUB_ENV
+          echo "ANYKERNEL3_FILE_WITH_KPM=${{ inputs.kernelsu_variant }} ${{ env.HOOK_VARIANT }} ${{ env.KERNEL_NAME }} ${{ env.BUILD_DATE }} KPM" >> $GITHUB_ENV
+          echo "RELEASE_TAG_NAME=${{ inputs.kernelsu_variant }} ${{ env.HOOK_VARIANT }} ${{ env.KERNEL_NAME }} ${{ env.BUILD_DATE }} KPM" >> $GITHUB_ENV
 
       - name: ⏰ Pack Anykernel3 with KPM
         if: ${{ env.USE_ANYKERNEL3 == 'true' }}
         env:
           PARAMS: "${{ toJSON(matrix.CONFIG.AnyKernel3) }}"
         run: |
-          cp -r AnyKernel3 AnyKernel3_2
-
-          if [ -e "${{ env.OUT_DIR }}/arch/${{ env.ARCH }}/boot/Image.gz-dtb" ]; then
-            cp -f ${{ env.OUT_DIR }}/arch/${{ env.ARCH }}/boot/Image.gz-dtb ./AnyKernel3_2/
-          else
-            if [ -e "${{ env.OUT_DIR }}/arch/${{ env.ARCH }}/boot/Image" ]; then
-              cp -f ${{ env.OUT_DIR }}/arch/${{ env.ARCH }}/boot/Image ./AnyKernel3_2/
-            fi
-            if [ -e "${{ env.OUT_DIR }}/arch/${{ env.ARCH }}/boot/dtbo" ]; then
-              cp -f ${{ env.OUT_DIR }}/arch/${{ env.ARCH }}/boot/dtbo ./AnyKernel3_2/
-            fi
-            if [ -e "${{ env.OUT_DIR }}/arch/${{ env.ARCH }}/boot/dtbo.img" ]; then
-              cp -f ${{ env.OUT_DIR }}/arch/${{ env.ARCH }}/boot/dtbo.img ./AnyKernel3_2/
-            fi
-          fi
-
-          cd AnyKernel3_2/
-          zip -q -r "${{ env.ANYKERNEL3_FILE_WITH_KPM }}.zip" *
-          cp "${{ env.ANYKERNEL3_FILE_WITH_KPM }}.zip" ${{ env.WORKSPACE }}
-          ls -la .
-          pwd
-          ls -la ${{ env.WORKSPACE }}
+          chmod +x scripts/pack_anykernel.sh && ./scripts/pack_anykernel.sh "AnyKernel3" "AnyKernel3_2" "${{ env.ANYKERNEL3_FILE_WITH_KPM }}"
 
       - name: "💾 Upload AnyKernel3 image => (${{ env.BUILD_DATE }})"
         uses: actions/upload-artifact@v4
