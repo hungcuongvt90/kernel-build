@@ -1,0 +1,56 @@
+services:
+  kernel-builder:
+    build:
+      context: .
+      dockerfile: Dockerfile.partial
+    volumes:
+      - .:/app/source:ro
+      - ./workspace:/app/workspace
+      - ./out:/app/out
+      - ./ccache:/app/ccache
+    environment:
+      # Workspace and Directories
+      - WORKSPACE=/app/workspace
+      - OUT_DIR=/app/out
+      - CCACHE_DIR=/app/ccache
+      - ENABLE_CCACHE=true
+      - THREADS=$(( $(nproc) > 1 ? $(nproc) : 2 )) # Default to available or 2
+
+      # Kernel configuration
+      - KERNEL_NAME=ishtar
+      - KERNEL_REPO=https://github.com/hungcuongvt90/android_gki_kernel_5.15_common
+      - KERNEL_BRANCH=android13-5.15-2025-05
+      - KERNEL_DEVICE=gki
+      - KERNEL_DEFCONFIG_PATH=gki_defconfig
+
+      # Patching and variants
+      - KERNEL_PATCH_REPO_URL=https://github.com/SukiSU-Ultra/SukiSU_patch
+      - HOOK_VARIANT=tracepoint
+      - SUSFS_BRANCH=gki-android13-5.15
+      - USE_KPM=true
+      - baseband_guard=false
+
+      # KernelSU settings
+      - ENABLE_KERNELSU=true
+      - ENABLE_KERNELSU_SFS=true
+      - kernelsu_branch=Stable
+      - kernelsu_variant=SukiSU
+
+      # External URLs
+      - SUSFS_REPO_URL=https://github.com/ShirkNeko/susfs4ksu.git
+      - SUKISU_PATCH_REPO_URL=https://github.com/SukiSU-Ultra/SukiSU_patch.git
+      - WILD_PATCH_REPO_URL=https://github.com/WildKernels/kernel_patches.git
+      - ANYKERNEL3_REPO_URL=https://github.com/WildPlusKernel/AnyKernel3
+      - BASEBAND_GUARD_URL=https://github.com/vc-teahouse/Baseband-guard/raw/main/setup.sh
+      - KPM_PATCH_URL=https://raw.githubusercontent.com/ShirkNeko/SukiSU_patch/refs/heads/main/kpm/patch_linux
+      
+      # KernelSU setup URLs
+      - KSU_OFFICIAL_SETUP_URL=https://raw.githubusercontent.com/tiann/KernelSU/main/kernel/setup.sh
+      - KSU_NEXT_SETUP_URL=https://raw.githubusercontent.com/rifsxd/KernelSU-Next/next/kernel/setup.sh
+      - KSU_MKSU_SETUP_URL=https://raw.githubusercontent.com/5ec1cff/KernelSU/main/kernel/setup.sh
+      - KSU_SUKISU_SETUP_URL=https://raw.githubusercontent.com/hungcuongvt90/SukiSU-Ultra/main/kernel/setup.sh
+      - KSU_MAKEFILE_URL=https://raw.githubusercontent.com/SukiSU-Ultra/SukiSU-Ultra/main/kernel/Makefile
+
+      # Matrix-style inputs (optional)
+      # - params={"CC": "clang/bin/clang", ...}
+      # - toolchains=[...]

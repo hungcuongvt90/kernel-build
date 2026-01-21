@@ -40,5 +40,5 @@ else
   exit 1
 fi
 
-echo "ANYKERNEL3_FILE_NO_KPM=${kernelsu_variant} ${HOOK_VARIANT} ${KERNEL_NAME} ${BUILD_DATE} NO KPM" >> "$GITHUB_ENV"
-echo "RELEASE_TAG_NAME=${kernelsu_variant} ${HOOK_VARIANT} ${KERNEL_NAME} ${BUILD_DATE} NO KPM" >> "$GITHUB_ENV"
+echo "ANYKERNEL3_FILE_NO_KPM=${kernelsu_variant} ${HOOK_VARIANT} ${KERNEL_NAME} ${BUILD_DATE} NO KPM" >> "${GITHUB_ENV:-/dev/null}"
+echo "RELEASE_TAG_NAME=${kernelsu_variant} ${HOOK_VARIANT} ${KERNEL_NAME} ${BUILD_DATE} NO KPM" >> "${GITHUB_ENV:-/dev/null}"

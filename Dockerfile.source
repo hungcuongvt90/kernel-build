@@ -1,0 +1,40 @@
+FROM hungcuongvt90/kernel_base:latest
+
+ARG DEBIAN_FRONTEND=noninteractive
+
+# Workspace and Directories
+ARG WORKSPACE=/app/workspace
+ARG SRC_DIR=/app/src
+ARG OUT_DIR=/app/out
+ARG CCACHE_DIR=/app/ccache
+ARG ENABLE_CCACHE=true
+ARG THREADS
+
+# Kernel configuration (Mandatory)
+ARG KERNEL_NAME=ishtar
+ARG KERNEL_REPO=https://github.com/hungcuongvt90/android_gki_kernel_5.15_common
+ARG KERNEL_BRANCH=android13-5.15-2025-05
+ARG KERNEL_DEFCONFIG_PATH=gki_defconfig
+
+# Export to ENV
+ENV WORKSPACE=${WORKSPACE} \
+    OUT_DIR=${OUT_DIR} \
+    CCACHE_DIR=${CCACHE_DIR} \
+    ENABLE_CCACHE=${ENABLE_CCACHE} \
+    KERNEL_NAME=${KERNEL_NAME} \
+    KERNEL_REPO=${KERNEL_REPO} \
+    KERNEL_BRANCH=${KERNEL_BRANCH} \
+    KERNEL_DEFCONFIG_PATH=${KERNEL_DEFCONFIG_PATH} \
+    THREADS=${THREADS} \
+    SRC_DIR=${SRC_DIR}
+
+WORKDIR ${SRC_DIR}
+
+COPY scripts/ /app/scripts/
+
+RUN chmod +x /app/scripts/clone_repository.sh /app/scripts/*.sh
+
+# Ensure build.sh knows where clang is
+ENV CC=/app/clang/bin/clang
+
+RUN /app/scripts/clone_repository.sh

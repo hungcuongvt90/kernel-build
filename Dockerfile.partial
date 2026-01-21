@@ -1,0 +1,13 @@
+FROM hungcuongvt90/kernel_base:latest
+
+ARG DEBIAN_FRONTEND=noninteractive
+
+COPY scripts/ /app/scripts/
+COPY build.sh /app/
+
+RUN chmod +x /app/build.sh /app/scripts/*.sh
+
+# Ensure build.sh knows where clang is
+ENV CC=/app/clang/bin/clang
+
+ENTRYPOINT ["/app/build.sh"]
