@@ -42,7 +42,7 @@ else
     echo "CONFIG_KRETPROBES=y" >> "$CONFIG_FILE"
 fi
 
-echo "CONFIG_KSU_MANUAL_HOOK=n" >> "$CONFIG_FILE" # applicable for non-gki kernel only
+echo "CONFIG_KSU_MANUAL_HOOK=y" >> "$CONFIG_FILE" # applicable for non-gki kernel only
 echo "CONFIG_HAVE_SYSCALL_TRACEPOINTS=y" >> "$CONFIG_FILE"
 
 

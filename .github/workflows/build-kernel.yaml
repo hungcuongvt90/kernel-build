@@ -9,7 +9,7 @@ on:
         type: string
         default: "https://github.com/hungcuongvt90/android_gki_kernel_5.15_common"
       kernel_branch:
-        description: "Kernel repository URL"
+        description: "Kernel branch name"
         required: true
         type: string
         default: "android13-5.15-2025-05"
@@ -38,11 +38,6 @@ on:
         required: true
         type: string
         default: "gki-android13-5.15"
-      # use_zram:
-      #   description: "Enable more ZRAM algorithms?"
-      #   required: true
-      #   type: boolean
-      #   default: true
       baseband_guard:
         type: boolean
         description: "Enable kernel-level protection against illegal writes to critical partitions/device nodes(LSM)？"
@@ -111,8 +106,6 @@ jobs:
       KERNEL_PATCH_REPO_URL: ${{ github.event.inputs.kernel_patch_repo }}
       HOOK_VARIANT: ${{ github.event.inputs.hook_variant }}
       SUSFS_BRANCH: ${{ github.event.inputs.susfs_branch }}
-      # USE_ZRAM: ${{ github.event.inputs.use_zram }}
-      # ZRAM_PATCH_VERSION: ${{ github.event.inputs.android_version }}
 
       # Whether to use ccache to speed up compilation
       ENABLE_CCACHE: true
@@ -174,25 +167,15 @@ jobs:
             cache-${{ env.KERNEL_NAME }}-
 
       - name: 🌟 Clone source => (${{ env.KERNEL_REPO }} + "susfs4ksu" + "SukiSU_patch")
+        env:
+          PARAMS: "${{ toJSON(matrix.CONFIG.params) }}"
         run: |
-          git clone --recursive --depth=1 -j $(nproc) --branch ${{ env.KERNEL_BRANCH }} ${{ env.KERNEL_REPO }} ${{ env.KERNEL_NAME }}
-          ls -la
-          # Clone repositories using the branch names
-          git clone https://github.com/ShirkNeko/susfs4ksu.git -b "${{ env.SUSFS_BRANCH }}"
-          git clone https://github.com/SukiSU-Ultra/SukiSU_patch.git
-          # git clone https://github.com/Tools-cx-app/kernel_patches.git
-          git clone https://github.com/WildKernels/kernel_patches.git
-
-          if echo -n '${{ env.PARAMS }}' | jq -e 'has("custom")' > /dev/null; then
-            CUSTOM_ANYKERNEL3=$(echo -n '${{ env.PARAMS }}' | jq -r ".custom")
-            ANYKERNEL_REPO=$(echo $CUSTOM_ANYKERNEL3 | jq -r ".repo")
-            ANYKERNEL_BRANCH=$(echo $CUSTOM_ANYKERNEL3 | jq -r ".branch")
-            git clone --recursive --depth=1 -j $(nproc) --branch $ANYKERNEL_BRANCH $ANYKERNEL_REPO AnyKernel3
-            echo "🤔 Use custom AnyKernel3 => ($ANYKERNEL_REPO)"
-          else
-            git clone --recursive --depth=1 -j $(nproc) https://github.com/WildPlusKernel/AnyKernel3 AnyKernel3
-            echo "🤔 Use WildPlus Anykernel3 => (https://github.com/WildPlusKernel/AnyKernel3)"
-          fi
+          chmod +x scripts/clone_sources.sh && ./scripts/clone_sources.sh \
+            "${{ env.KERNEL_NAME }}" \
+            "${{ env.KERNEL_REPO }}" \
+            "${{ env.KERNEL_BRANCH }}" \
+            "${{ env.SUSFS_BRANCH }}" \
+            "$PARAMS"
 
       - name: 💫 Get toolchains on ubuntu github runner
         env:
@@ -233,69 +216,6 @@ jobs:
 
           echo "🤔 $args LLVM_IAS=1"
 
-      # - name: Set environment variables docker
-      #   working-directory: ${{ env.WORKSPACE }}
-      #   run: |
-      #     toolchains_num="$(echo $toolchains | jq 'length')"
-      #     echo "🤔 There is $toolchains_num defined toolchains."
-
-      #     for ((i=0;i<toolchains_num;i++)); do
-      #       toolchain=$(echo $toolchains | jq -r ".[$i]")
-
-      #       toolchain_name=$(echo $toolchain | jq -r ".name")
-      #       jq -r ".binaryEnv[] | tostring" <<< "$toolchain" | while read -r subPath; do
-      #         echo "/home/runner/$toolchain_name/$subPath" >> $GITHUB_PATH
-      #       done
-      #     done
-
-      # - name: 😎 Set build args docker
-      #   id: generate-args
-      #   env:
-      #     PARAMS: "${{ toJSON(matrix.CONFIG.params) }}"
-      #     THREAD: $(nproc --all)
-      #   run: |
-      #     echo "🤔 PATH Variable: $PATH"
-
-      #     ARCH="arm64"
-      #     CC="clang/bin/clang"
-
-      #     args="-j${{ env.THREAD }} O=${{ env.OUT_DIR }} ARCH=$ARCH"
-      #     if [ -n "$CC" ]; then
-
-      #       if [[ "$CC" == *"/"* ]]; then
-      #         CC=/home/runner/$CC
-      #       fi
-
-      #       if [ ${{ env.ENABLE_CCACHE }} = true ]; then
-      #         args="$args CC=\"ccache $CC\""
-      #       else
-      #         args="$args CC=$CC"
-      #       fi
-      #     fi
-      #     while read -r externalCommand; do
-      #       key=$(echo "$externalCommand" | cut -d= -f1)
-      #       value=$(echo "$externalCommand" | cut -d= -f2)
-      #       if [[ "$value" == *"/"* ]]; then
-      #         value="/home/runner/$value"
-      #       fi
-      #       args="$args $key=$value"
-      #     done < <(jq -r '.externalCommands | to_entries[] | "\(.key)=\(.value)"' <<< "$PARAMS")
-
-      #     args="$args BUILD_SHARED_LIBS=ON LLVM_IAS=1"
-
-      #     echo "ARCH=$ARCH" >> $GITHUB_ENV
-      #     echo "ARGS=$args" >> $GITHUB_ENV
-
-      #     echo "🤔 $args"
-
-      # - name: Determine the branch for SukiSU KernelSU
-      #   run: |
-      #     if [[ "${{ inputs.kernelsu_branch }}" == "Stable" && ( "${{ inputs.kernelsu_variant }}" == "SukiSU" ) ]]; then
-      #         echo "KSU_BRANCH=susfs-main" >> $GITHUB_ENV
-      #     elif [[ "${{ inputs.kernelsu_branch }}" == "Dev" && ( "${{ inputs.kernelsu_variant }}" == "SukiSU" ) ]]; then
-      #         echo "KSU_BRANCH=susfs-test" >> $GITHUB_ENV
-      #     fi
-
       - name: 😋 Setup KernelSU
         working-directory: ${{ env.KERNEL_NAME }}
         if: ${{ env.ENABLE_KERNELSU == 'true' }}
@@ -319,58 +239,6 @@ jobs:
           kernelsu_variant: ${{ inputs.kernelsu_variant }}
         run: |
           chmod +x ../scripts/apply_patches.sh && cp ../scripts/apply_patches.sh . && ./apply_patches.sh
-
-      # - name: Copy source files & apply LZ4KD & ZSTDN patches
-      #   working-directory: ${{ env.KERNEL_NAME }}
-      #   if: ${{ env.USE_ZRAM == 'true' && inputs.kernelsu_variant == 'SukiSU' }}
-      #   run: |
-      #     echo "Apply LZ4KD patches"
-
-      #     cp -r ../SukiSU_patch/other/zram/lz4k/include/linux/* ./include/linux/
-      #     cp -r ../SukiSU_patch/other/zram/lz4k/lib/* ./lib/
-      #     cp -r ../SukiSU_patch/other/zram/lz4k/crypto/* ./crypto/
-      #     cp -r ../SukiSU_patch/other/zram/lz4k_oplus ./lib/
-
-      #     cp ../SukiSU_patch/other/zram/zram_patch/${{ env.ZRAM_PATCH_VERSION }}/lz4kd.patch ./
-      #     echo "Applying lz4kd patch"
-      #     patch -p1 -F 3 < lz4kd.patch || true
-      #     echo "Completed LZ4KD patch"
-
-      #     cp ../SukiSU_patch/other/zram/zram_patch/${{ env.ZRAM_PATCH_VERSION }}/lz4k_oplus.patch ./
-      #     echo "Applying lz4k_oplus patch"
-      #     patch -p1 -F 3 < lz4k_oplus.patch || true
-      #     echo "Completed the lz4k_oplus patch"
-
-      # - name: Apply SCHED
-      #   working-directory: ${{ env.KERNEL_NAME }}
-      #   run: |
-      #     git clone https://github.com/HanKuCha/sched_ext.git
-      #     cp -r ./sched_ext/* ./kernel/sched
-      #     rm -rf ./sched_ext/.git
-      #     cd ./kernel/sched
-
-      # - name: LZ4KD & Lz4k_oplus Configuration
-      #   working-directory: ${{ env.KERNEL_NAME }}
-      #   if: ${{ env.USE_ZRAM == 'true' && inputs.kernelsu_variant == 'SukiSU' }}
-      #   run: |
-      #     set -x
-      #     set -e
-      #     echo "Write LZ4KD&ZSTDN config dependency"
-      #     CONFIG_FILE="./arch/$ARCH/configs/gki_defconfig"
-
-      #     if [ "${{ inputs.use_kpm }}" = "true" ] && [ "${{ inputs.kernelsu_variant }}" = "SukiSU" ] && [ "${{ inputs.android_version }}" == "5.15" ]; then
-      #         echo "CONFIG_ZSMALLOC=y" >> "$CONFIG_FILE"
-      #         echo "CONFIG_ZRAM=y" >> "$CONFIG_FILE"
-      #         echo "CONFIG_MODULE_SIG=n" >> "$CONFIG_FILE"
-      #         echo "CONFIG_CRYPTO_LZO=y" >> "$CONFIG_FILE"
-      #         echo "CONFIG_ZRAM_DEF_COMP_LZ4KD=y" >> "$CONFIG_FILE"
-      #         echo "CONFIG_CRYPTO_LZ4HC=y" >> "$CONFIG_FILE"
-      #         echo "CONFIG_CRYPTO_LZ4K=y" >> "$CONFIG_FILE"
-      #         echo "CONFIG_CRYPTO_LZ4KD=y" >> "$CONFIG_FILE"
-      #         echo "CONFIG_CRYPTO_842=y" >> "$CONFIG_FILE"
-      #         echo "CONFIG_CRYPTO_LZ4K_OPLUS=y" >> "$CONFIG_FILE"
-      #         echo "CONFIG_ZRAM_WRITEBACK=y" >> "$CONFIG_FILE"
-      #     fi
 
       - name: Apply Mountify configuration settings
         working-directory: ${{ env.KERNEL_NAME }}
