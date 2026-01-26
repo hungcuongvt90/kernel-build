@@ -23,29 +23,6 @@ echo "Adding configuration settings to $CONFIG_FILE..."
 # Add KSU configuration settings
 echo "CONFIG_KSU=y" >> "$CONFIG_FILE"
 
-if [ "$kernelsu_variant" == "Next" ]; then
-    echo "CONFIG_KSU_KPROBES_HOOK=n" >> "$CONFIG_FILE"
-    echo "CONFIG_KSU_SUSFS_SUS_SU=n" >> "$CONFIG_FILE"
-elif [ "$kernelsu_variant" == "SukiSU" ]; then
-    echo "CONFIG_KPM=y" >> "$CONFIG_FILE"
-    echo "CONFIG_KSU_SUSFS_SUS_SU=n" >> "$CONFIG_FILE"
-elif [ "$kernelsu_variant" == "MKSU" ]; then
-    echo "CONFIG_KSU_SUSFS_SUS_SU=n" >> "$CONFIG_FILE"
-fi
-
-if [ "$HOOK_VARIANT" == "tracepoint" ]; then
-    echo "CONFIG_KSU_TRACEPOINT_HOOK=y" >> "$CONFIG_FILE"
-    echo "CONFIG_KSU_TAMPER_SYSCALL_TABLE=y" >> "$CONFIG_FILE"
-else
-    echo "CONFIG_KSU_SYSCALL_HOOK=y" >> "$CONFIG_FILE"
-    echo "CONFIG_KPROBES=y" >> "$CONFIG_FILE"
-    echo "CONFIG_KRETPROBES=y" >> "$CONFIG_FILE"
-fi
-
-echo "CONFIG_KSU_MANUAL_HOOK=y" >> "$CONFIG_FILE" # applicable for non-gki kernel only
-echo "CONFIG_HAVE_SYSCALL_TRACEPOINTS=y" >> "$CONFIG_FILE"
-
-
 # Add additional tmpfs config setting
 echo "CONFIG_TMPFS_XATTR=y" >> "$CONFIG_FILE"
 echo "CONFIG_TMPFS_POSIX_ACL=y" >> "$CONFIG_FILE"
@@ -68,7 +45,7 @@ echo "CONFIG_KSU_DEBUG=n" >> "$CONFIG_FILE"
 echo "CONFIG_KSU_ALLOWLIST_WORKAROUND=n" >> "$CONFIG_FILE"
 # echo "CONFIG_KSU_MANUAL_SU=n" >> "$CONFIG_FILE"
 echo "CONFIG_KSU_SUSFS=y" >> "$CONFIG_FILE"
-echo "CONFIG_KSU_SUSFS_SUS_PATH=n" >> "$CONFIG_FILE"
+echo "CONFIG_KSU_SUSFS_SUS_PATH=y" >> "$CONFIG_FILE"
 echo "CONFIG_KSU_SUSFS_SUS_MOUNT=y" >> "$CONFIG_FILE"
 echo "CONFIG_KSU_SUSFS_SUS_KSTAT=y" >> "$CONFIG_FILE"
 # echo "CONFIG_KSU_SUSFS_SUS_OVERLAYFS=n" >> "$CONFIG_FILE"
@@ -78,6 +55,28 @@ echo "CONFIG_KSU_SUSFS_HIDE_KSU_SUSFS_SYMBOLS=y" >> "$CONFIG_FILE"
 echo "CONFIG_KSU_SUSFS_SPOOF_CMDLINE_OR_BOOTCONFIG=y" >> "$CONFIG_FILE"
 echo "CONFIG_KSU_SUSFS_OPEN_REDIRECT=y" >> "$CONFIG_FILE"
 echo "CONFIG_KSU_SUSFS_SUS_MAP=y" >> "$CONFIG_FILE"
+
+if [ "$kernelsu_variant" == "Next" ]; then
+    echo "CONFIG_KSU_KPROBES_HOOK=n" >> "$CONFIG_FILE"
+    echo "CONFIG_KSU_SUSFS_SUS_SU=n" >> "$CONFIG_FILE"
+elif [ "$kernelsu_variant" == "SukiSU" ]; then
+    echo "CONFIG_KPM=y" >> "$CONFIG_FILE"
+    echo "CONFIG_KSU_SUSFS_SUS_SU=n" >> "$CONFIG_FILE"
+elif [ "$kernelsu_variant" == "MKSU" ]; then
+    echo "CONFIG_KSU_SUSFS_SUS_SU=n" >> "$CONFIG_FILE"
+fi
+
+if [ "$HOOK_VARIANT" == "tracepoint" ]; then
+    echo "CONFIG_KSU_TRACEPOINT_HOOK=y" >> "$CONFIG_FILE"
+    echo "CONFIG_KSU_TAMPER_SYSCALL_TABLE=y" >> "$CONFIG_FILE"
+else
+    echo "CONFIG_KSU_SYSCALL_HOOK=y" >> "$CONFIG_FILE"
+    echo "CONFIG_KPROBES=y" >> "$CONFIG_FILE"
+    echo "CONFIG_KRETPROBES=y" >> "$CONFIG_FILE"
+fi
+
+echo "CONFIG_KSU_MANUAL_HOOK=y" >> "$CONFIG_FILE" # applicable for non-gki kernel only
+echo "CONFIG_HAVE_SYSCALL_TRACEPOINTS=y" >> "$CONFIG_FILE"
 
 # Remove check_defconfig
 sed -i 's/check_defconfig//' ./build.config.gki
