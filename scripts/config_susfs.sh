@@ -71,8 +71,8 @@ if [ "$HOOK_VARIANT" == "tracepoint" ]; then
     echo "CONFIG_KSU_TAMPER_SYSCALL_TABLE=y" >> "$CONFIG_FILE"
 else
     echo "CONFIG_KSU_SYSCALL_HOOK=y" >> "$CONFIG_FILE"
-    echo "CONFIG_KPROBES=y" >> "$CONFIG_FILE"
-    echo "CONFIG_KRETPROBES=y" >> "$CONFIG_FILE"
+    # echo "CONFIG_KPROBES=y" >> "$CONFIG_FILE"
+    # echo "CONFIG_KRETPROBES=y" >> "$CONFIG_FILE"
 fi
 
 echo "CONFIG_KSU_MANUAL_HOOK=y" >> "$CONFIG_FILE" # applicable for non-gki kernel only

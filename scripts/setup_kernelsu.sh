@@ -23,8 +23,8 @@ elif [ "$kernelsu_variant" == "MKSU" ]; then
   echo "Done applying KernelSU MKSU..."
 elif [ "$kernelsu_variant" == "SukiSU" ]; then
   echo "Adding KernelSU SukiSU..."
-  # curl -LSs "https://raw.githubusercontent.com/SukiSU-Ultra/SukiSU-Ultra/main/kernel/setup.sh" | bash -s "$KSU_BRANCH"
-  curl -LSs "https://raw.githubusercontent.com/hungcuongvt90/SukiSU-Ultra/main/kernel/setup.sh" | bash -s "$KSU_BRANCH"
+  curl -LSs "https://raw.githubusercontent.com/SukiSU-Ultra/SukiSU-Ultra/main/kernel/setup.sh" | bash -s "$KSU_BRANCH"
+  # curl -LSs "https://raw.githubusercontent.com/hungcuongvt90/SukiSU-Ultra/main/kernel/setup.sh" | bash -s "$KSU_BRANCH"
   
   # If a manual hash was specified, switch to this commit.
   if [[ -n "$MANUAL_HASH" ]]; then
