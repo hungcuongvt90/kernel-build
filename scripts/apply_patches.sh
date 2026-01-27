@@ -3,7 +3,7 @@ set -e
 
 # Apply additional patch
 
-if [ "$kernelsu_variant" == "SukiSU" ]; then
+if [ "$kernelsu_variant" == "SukiSU" ] || [ "$kernelsu_variant" == "ReSukiSU" ]; then
     cp ../SukiSU_patch/69_hide_stuff.patch ./
     patch -p1 -F 3 < 69_hide_stuff.patch
 
@@ -27,7 +27,4 @@ if [ "$kernelsu_variant" == "SukiSU" ]; then
         cp "$PATCH_DIR/$patch" ./
         patch -p1 -F 3 < "$patch"
     done
-else
-    cp ../kernel_patches/69_hide_stuff.patch ./
-    patch -p1 -F 3 < 69_hide_stuff.patch
 fi

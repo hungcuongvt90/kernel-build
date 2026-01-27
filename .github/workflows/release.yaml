@@ -22,12 +22,13 @@ on:
           - Next
           - MKSU
           - SukiSU
+          - ReSukiSU
         default: SukiSU
       kernelsu_branch:
         description: "Select KernelSU Branch"
         required: true
         type: string
-        default: builtin-cuong
+        default: builtin
       kernel_patch_repo:
         description: "Select Kernel Patch repository URL"
         required: true

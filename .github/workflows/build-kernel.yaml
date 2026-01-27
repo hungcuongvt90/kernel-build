@@ -17,7 +17,7 @@ on:
         description: "Select KernelSU Branch"
         required: true
         type: string
-        default: builtin-cuong
+        default: builtin
       kernelsu_variant:
         description: "Select KernelSU"
         required: true
@@ -362,7 +362,7 @@ jobs:
 
       - name: Apply KPM
         working-directory: ${{ env.OUT_DIR }}/arch/${{ env.ARCH }}/boot/
-        if: ${{ inputs.kernelsu_variant == 'SukiSU' && inputs.android_version != '6.6' }}
+        if: ${{ (inputs.kernelsu_variant == 'SukiSU' || inputs.kernelsu_variant == 'ReSukiSU') && inputs.android_version != '6.6' }}
         run: |
           echo "Start to patch KPM" 
           pwd

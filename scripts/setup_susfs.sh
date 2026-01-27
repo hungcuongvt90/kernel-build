@@ -26,15 +26,23 @@ elif [ "$kernelsu_variant" == "SukiSU" ]; then
 
   patch -p1 < 50_add_susfs_in_${SUSFS_BRANCH}.patch || true
 
-  if [ "${HOOK_VARIANT}" == "scope_min_manual" ]; then
-    echo "Apply scope min manual hook patches"
-    cp ../SukiSU_patch/hooks/scope_min_manual_hooks_v1.6.patch ./
-    patch -p1 -F 3 < scope_min_manual_hooks_v1.6.patch
-  else
-    echo "Apply syscall hook patches"
-    cp ../SukiSU_patch/hooks/syscall_hooks.patch ./
-    patch -p1 -F 3 < syscall_hooks.patch
-  fi
+  # if [ "${HOOK_VARIANT}" == "scope_min_manual" ]; then
+  #   echo "Apply scope min manual hook patches"
+  #   cp ../SukiSU_patch/hooks/scope_min_manual_hooks_v1.6.patch ./
+  #   patch -p1 -F 3 < scope_min_manual_hooks_v1.6.patch
+  # else
+  #   echo "Apply syscall hook patches"
+  #   cp ../SukiSU_patch/hooks/syscall_hooks.patch ./
+  #   patch -p1 -F 3 < syscall_hooks.patch
+  # fi
+elif [ "$kernelsu_variant" == "ReSukiSU" ]; then
+  echo "Applying SUSFS patches for ReSukiSU..."
+  cp ../susfs4ksu/kernel_patches/50_add_susfs_in_${SUSFS_BRANCH}.patch ./
+  cp ../susfs4ksu/kernel_patches/fs/* ./fs/
+  cp ../susfs4ksu/kernel_patches/include/linux/* ./include/linux/
+
+  patch -p1 < 50_add_susfs_in_${SUSFS_BRANCH}.patch || true
+
 else
   echo "Invalid KernelSU variant selected!"
   exit 1

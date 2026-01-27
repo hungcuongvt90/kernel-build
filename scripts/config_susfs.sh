@@ -62,6 +62,9 @@ if [ "$kernelsu_variant" == "Next" ]; then
 elif [ "$kernelsu_variant" == "SukiSU" ]; then
     echo "CONFIG_KPM=y" >> "$CONFIG_FILE"
     echo "CONFIG_KSU_SUSFS_SUS_SU=n" >> "$CONFIG_FILE"
+elif [ "$kernelsu_variant" == "ReSukiSU" ]; then
+    echo "CONFIG_KPM=y" >> "$CONFIG_FILE"
+    echo "CONFIG_KSU_SUSFS_SUS_SU=n" >> "$CONFIG_FILE"
 elif [ "$kernelsu_variant" == "MKSU" ]; then
     echo "CONFIG_KSU_SUSFS_SUS_SU=n" >> "$CONFIG_FILE"
 fi
