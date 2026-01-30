@@ -78,5 +78,10 @@ fi
 echo "CONFIG_KSU_MANUAL_HOOK=y" >> "$CONFIG_FILE" # applicable for non-gki kernel only
 echo "CONFIG_HAVE_SYSCALL_TRACEPOINTS=y" >> "$CONFIG_FILE"
 
+
+# fix for overlayfs
+echo "CONFIG_OVERLAY_FS=y" >> "$CONFIG_FILE"
+echo "CONFIG_TMPFS_XATTR=y" >> "$CONFIG_FILE"
+
 # Remove check_defconfig
 sed -i 's/check_defconfig//' ./build.config.gki
