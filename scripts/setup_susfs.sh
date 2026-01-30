@@ -6,9 +6,13 @@ if [ "$kernelsu_variant" == "Official" ]; then
   cp ../susfs4ksu/kernel_patches/KernelSU/10_enable_susfs_for_ksu.patch ./
   patch -p1 --forward --fuzz=3 < 10_enable_susfs_for_ksu.patch || true
 elif [ "$kernelsu_variant" == "Next" ]; then
+  cp ../susfs4ksu/kernel_patches/KernelSU/10_enable_susfs_for_ksu.patch ./
+   patch -p1 --forward --fuzz=3 < 10_enable_susfs_for_ksu.patch || true
+  cp ../susfs4ksu/kernel_patches/fs/* ./fs/
+  cp ../susfs4ksu/kernel_patches/include/linux/* ./include/linux/
   echo "Applying SUSFS patches for KernelSU-Next..."
-  cp ../kernel_patches/next/next_hooks.patch ./
-  patch -p1 -F 3 < next_hooks.patch
+  cp ../kernel_patches/next/scope_min_manual_hooks_v1.6.patch ./
+  patch -p1 -F 3 < scope_min_manual_hooks_v1.6.patch
 elif [ "$kernelsu_variant" == "MKSU" ]; then
   echo "Applying SUSFS patches for MKSU..."
   cp ../susfs4ksu/kernel_patches/KernelSU/10_enable_susfs_for_ksu.patch ./

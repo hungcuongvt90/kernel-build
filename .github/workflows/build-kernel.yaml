@@ -245,10 +245,6 @@ jobs:
         run: |
           CONFIG_FILE="./arch/$ARCH/configs/gki_defconfig"
           echo "Adding configuration settings to gki_defconfig..."
-
-          # Add KSU configuration settings
-          echo "CONFIG_OVERLAY_FS=y" >> $CONFIG_FILE
-
           cat $CONFIG_FILE
 
       - name: Enable kernel-level baseband protection
