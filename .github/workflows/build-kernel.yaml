@@ -166,16 +166,18 @@ jobs:
             cache-${{ env.KERNEL_NAME }}-${{env.HASH}}-
             cache-${{ env.KERNEL_NAME }}-
 
-      - name: 🌟 Clone source => (${{ env.KERNEL_REPO }} + "susfs4ksu" + "SukiSU_patch")
+      - name: 🌟 Clone sources & Setup KernelSU/SUSFS
         env:
           PARAMS: "${{ toJSON(matrix.CONFIG.params) }}"
         run: |
-          chmod +x scripts/clone_sources.sh && ./scripts/clone_sources.sh \
+          chmod +x scripts/setup_kernel_sources.sh && ./scripts/setup_kernel_sources.sh \
             "${{ env.KERNEL_NAME }}" \
             "${{ env.KERNEL_REPO }}" \
             "${{ env.KERNEL_BRANCH }}" \
             "${{ env.SUSFS_BRANCH }}" \
-            "$PARAMS"
+            "$PARAMS" \
+            "${{ inputs.kernelsu_variant }}" \
+            "${{ inputs.kernelsu_branch }}"
 
       - name: 💫 Get toolchains on ubuntu github runner
         env:
@@ -216,22 +218,7 @@ jobs:
 
           echo "🤔 $args LLVM_IAS=1"
 
-      - name: 😋 Setup KernelSU
-        working-directory: ${{ env.KERNEL_NAME }}
-        if: ${{ env.ENABLE_KERNELSU == 'true' }}
-        env:
-          kernelsu_variant: ${{ inputs.kernelsu_variant }}
-          BRANCH_NAME: ${{ inputs.kernelsu_branch }}
-        run: |
-          chmod +x ../scripts/setup_kernelsu.sh && ../scripts/setup_kernelsu.sh
 
-      - name: 😋 Setup KSU SUSFS
-        working-directory: ${{ env.KERNEL_NAME }}
-        if: ${{ env.ENABLE_KERNELSU == 'true' && env.ENABLE_KERNELSU_SFS == 'true' }}
-        env:
-          kernelsu_variant: ${{ inputs.kernelsu_variant }}
-        run: |
-          chmod +x ../scripts/setup_susfs.sh && ../scripts/setup_susfs.sh
 
       - name: Apply Hide Stuff Patches
         working-directory: ${{ env.KERNEL_NAME }}
